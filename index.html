@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Object Set Query Prototype by onsetsu</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Object Set Query Prototype</h1>
+        <p>Prototype of Reactive Object Set Queries in JavaScript</p>
+
+        <p class="view"><a href="https://github.com/onsetsu/active-collection-prototype">View the Project on GitHub <small>onsetsu/active-collection-prototype</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/onsetsu/active-collection-prototype/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/onsetsu/active-collection-prototype/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/onsetsu/active-collection-prototype">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h3>
+<a id="prototype-of-reactive-object-set-queries-in-javascript" class="anchor" href="#prototype-of-reactive-object-set-queries-in-javascript" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prototype of Reactive Object Set Queries in JavaScript</h3>
+
+<p>Object Set Queries allow you to glob your program for specific objects. To do so, the <code>select</code> method returns an object set containing all objects that match a given condition.
+Note, that the object set is automatically updated, i.e. objects are added or removed from the set in case of new objects being constructed or certain objects no longer match the specified condition.
+As a result, the object set represents a persistent materialized view on your program at any given point in time.</p>
+
+<h3>
+<a id="example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h3>
+
+<p>For a sample usage visit <a href="http://onsetsu.github.io/active-collection-prototype/bloob.html">this page</a>. This example implements an entity finding utility for the <a href="https://github.com/onsetsu/bloob">Bloob Game/Physics Engine</a>. You can search for any named entity in the game world. Simply type in a name and click on an item in the dropdown list to focus the camera on the particular entity. This list view is also reactive. For example, type <em>Crate</em> and click on <em>CrateSpawner</em>. Then, you can click on the <em>CrateSpawner</em> entity in the game world. This will create a <em>jumpingCrate</em> entity, which will automatically be reflected by the list view.</p>
+
+<p>The following code was used to query our program and create the list view for any matching entity:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-c">// Track construction and destruction of Entity objects.</span>
+withLogging.<span class="pl-c1">call</span>(Entity);
+
+<span class="pl-c">// Define a start query and create a dropdown menu with it.</span>
+<span class="pl-k">var</span> search <span class="pl-k">=</span> { string<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>Blob<span class="pl-pds">'</span></span> };
+
+<span class="pl-k">var</span> entityFinder <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">EntityDropdown</span>(<span class="pl-s"><span class="pl-pds">'</span>#entityFinder<span class="pl-pds">'</span></span>, search);
+entityFinder.show();
+
+<span class="pl-c">// Query the program space for entities containing the search string.</span>
+<span class="pl-k">var</span> matchingEntities <span class="pl-k">=</span> <span class="pl-c1">select</span>(Entity, <span class="pl-k">function</span>(<span class="pl-smi">entity</span>) {
+  <span class="pl-k">return</span> entity.<span class="pl-c1">name</span>.<span class="pl-c1">indexOf</span>(search.string) <span class="pl-k">&gt;</span> <span class="pl-k">-</span><span class="pl-c1">1</span>;
+});
+
+<span class="pl-c">// Create a list item for every entity that matches the query.</span>
+matchingEntities.map(<span class="pl-k">function</span>(<span class="pl-smi">entity</span>) {
+  <span class="pl-k">var</span> name <span class="pl-k">=</span> entity.<span class="pl-c1">name</span>;
+  <span class="pl-k">var</span> file <span class="pl-k">=</span> jQuery(<span class="pl-s"><span class="pl-pds">'</span>&lt;a/&gt;<span class="pl-pds">'</span></span>, {
+    class<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>file<span class="pl-pds">'</span></span>,
+    html<span class="pl-k">:</span> name,
+    title<span class="pl-k">:</span> name
+  });
+  file.bind(<span class="pl-s"><span class="pl-pds">'</span>click<span class="pl-pds">'</span></span>, entityFinder.focusCameraOn.bind(entityFinder, entity, layer));
+  <span class="pl-k">return</span> file;
+})
+  <span class="pl-c">// When a new list item is created, append it to the list.</span>
+  .enter(<span class="pl-k">function</span>(<span class="pl-smi">elem</span>) {
+    entityFinder.div.append(elem);
+  })
+  <span class="pl-c">// Remove a list item, when its corresponding entity no longer fits the condition.</span>
+  .exit(<span class="pl-k">function</span>(<span class="pl-smi">elem</span>) {
+    elem.remove();
+  });</pre></div>
+
+<h3>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h3>
+
+<p>The project supports a single method: <code>select</code>. This method takes a class and a filter function as parameter. The filter function is called with an object of the specified class as single parameter and should return a boolean. Note, that a source code transformation is applied to the code in order to identify the context of the filter function. Before objects of a class can be queried, you have to track that class using the <code>withLogging</code> method.</p>
+
+<p>The <code>select</code> method return a reactive object set that supports the following methods:</p>
+
+<ul>
+<li>
+<code>map</code>: Takes a mapping function and returns another reactive object set. That set always contains the mapped objects corresponding to the objects in the original set.</li>
+<li>
+<code>filter</code>: Takes an additional filter function and returns a reactive object set. That set only contains the objects of the original set that also match the given filter function.</li>
+<li>
+<code>enter</code>: Takes a callback that consumes a single parameter. This callback is called whenever an object is added to the reactive set with that very object.</li>
+<li>
+<code>exit</code>: Similar to <code>enter</code>, but the callback is called everytime an object is removed from the set.</li>
+<li>
+<code>now</code>: Returns an Array of the objects that are currently in the set. This Array does not update automatically.</li>
+<li>
+<code>size</code>: Returns the current number of objects the set contains.</li>
+</ul>
+
+<h3>
+<a id="questions" class="anchor" href="#questions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Questions?</h3>
+
+<p>If you are interested or have any questions, simply write to <a href="https://github.com/onsetsu" class="user-mention">@onsetsu</a>.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/onsetsu">onsetsu</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
