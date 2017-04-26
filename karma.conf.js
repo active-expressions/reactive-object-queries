@@ -10,8 +10,8 @@ module.exports = function (config) {
                     '--window-position=-0,0'
                 ]
             },
-            ChromeCanary_Travis_CI_large_no_sandbox: {
-                base: 'ChromeCanary',
+            Chrome_Travis_CI_large_no_sandbox: {
+                base: 'Chrome',
                 flags: [
                     '--window-size=1100,600',
                     '--window-position=-0,0',
@@ -41,7 +41,7 @@ module.exports = function (config) {
         singleRun: false
     };
     if (process.env.TRAVIS) {
-        configuration.browsers = ['ChromeCanary_Travis_CI_large_no_sandbox'];
+        configuration.browsers = ['Chrome_Travis_CI_large_no_sandbox'];
     }
 
     config.set(configuration);
