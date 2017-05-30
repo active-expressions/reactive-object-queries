@@ -185,4 +185,168 @@ describe('.layer operators', function() {
         expect(text.onDrag()).to.equal('text -> rectangle -> rectangle');
         expect(circle.onDrag()).to.equal('circle -> rectangle');
     });
+
+    it('IEEE Software Example (Minified/Readable)', function() {
+
+        class Array {
+            constructor() {
+                this.arr = [];
+                this.initialize();
+            }
+            initialize() {}
+
+            at(index) {
+                return this.arr[index];
+            }
+            push(item) {
+                let len = this.arr.length;
+                this.arr[len] = item;
+            }
+            remove(index) {
+                this.arr[index] = undefined;
+            }
+            includes(item) {
+                let len = this.arr.length;
+                let result = false;
+
+                let i = 0;
+                for(; i <= len; i++) {
+                    if(this.arr[i] === item) {
+                        result = true;
+                    }
+                }
+
+                return result;
+            }
+            moveToOtherArray(target) {
+                let len = this.arr.length;
+                let i = 0;
+                for(; i < len; i++) {
+                    target.push(this.at(i));
+                    this.remove(i);
+                }
+            }
+        }
+
+        class GraphicalElement {
+            constructor() {
+                this.children = new Array();
+                this.persistentChildren = new Array();
+                this.initialize();
+            }
+            initialize() {}
+
+            addChild(c) {
+                this.children.push(c);
+                c.parent = this;
+
+                return this;
+            }
+            persistChildren() {
+                this.children.moveToOtherArray(this.persistentChildren);
+            }
+            unpersistChildren() {
+                this.persistentChildren.moveToOtherArray(this.children);
+            }
+            hasParent(cb) {
+                if(this.parent) {
+                    if(cb(this.parent, this)) {
+                        return true;
+                    } else {
+                        return this.parent.hasParent(cb);
+                    }
+                }
+                return false;
+            }
+        }
+        withLogging.call(GraphicalElement);
+
+        class Stage extends GraphicalElement {
+            onDrag() {
+                return 'stage';
+            }
+        }
+
+        class Circle extends GraphicalElement {
+            onDrag() {
+                return 'circle';
+            }
+        }
+
+        class SideBar extends GraphicalElement {
+            onDrag() {
+                return 'sidebar';
+            }
+        }
+
+        class Rectangle extends GraphicalElement {
+            onDrag() {
+                return 'rectangle';
+            }
+        }
+
+        class Text extends GraphicalElement {
+            onDrag() {
+                return 'text';
+            }
+        }
+
+        let stage = new Stage();
+        let sidebar = new SideBar();
+        stage.addChild(sidebar);
+
+        // ### start actual example here? ###
+
+        // define group using a reactive query
+        let persistentChildren = select(GraphicalElement, ge => ge.hasParent((parent, child) => parent.persistentChildren.includes(child)));
+
+        // adapt behavior of the group members
+        persistentChildren.layer({
+            onDrag(event) {
+                return this.parent.onDrag(event); // delegate drag interactions to parent
+            }
+        });
+
+        let rect = new Rectangle();
+        let text = new Text();
+        rect.addChild(text);
+
+        sidebar.addChild(rect);
+
+        // can drag text independently or the composition of text and rectangle
+        expect(rect.onDrag()).to.equal('rectangle');
+        expect(text.onDrag()).to.equal('text');
+
+        // current children should hold their position
+        sidebar.persistChildren();
+
+        // thus, they delegate drag operations to their parent
+        expect(rect.onDrag()).to.equal('sidebar'); // rect.onDrag(evt); // moves the whole sidebar
+        expect(text.onDrag()).to.equal('sidebar'); // text.onDrag(evt); // same for nested children
+
+        // adding a new circle to the sidebar
+        let circle = new Circle();
+        sidebar.addChild(circle);
+
+        // can individually drag the circle as it is not persistent
+        expect(circle.onDrag()).to.equal('circle'); // circle.onDrag(evt); // invokes unmodified behavior of the Circle class
+
+        // ### maybe already stop here? ###
+
+        // unpersisting all persistent children
+        sidebar.unpersistChildren();
+
+        // Thus all children move individually
+        expect(rect.onDrag()).to.equal('rectangle');
+        expect(text.onDrag()).to.equal('text');
+        expect(circle.onDrag()).to.equal('circle');
+
+        // persisting all children ...
+        sidebar.persistChildren();
+
+        // ... delegates dragging for all of them
+        expect(rect.onDrag()).to.equal('sidebar');
+        expect(text.onDrag()).to.equal('sidebar');
+        expect(circle.onDrag()).to.equal('sidebar');
+    });
 });
