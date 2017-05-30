@@ -4,9 +4,9 @@ import commonjs from 'rollup-plugin-commonjs';
 import multiEntry from 'rollup-plugin-multi-entry';
 
 export default {
-    entry: 'test/**/!(layer)*.spec.js',
+    entry: 'test/**/*.spec.js',
     dest: 'test/temp/pre-babel.js',
-    external: ['aexpr-source-transformation-propagation'],
+    external: ['aexpr-source-transformation-propagation', 'contextjs'],
     plugins: [
         nodeResolve({
             jsnext: true,
