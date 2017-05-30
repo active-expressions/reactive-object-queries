@@ -1,6 +1,7 @@
 import withLogging from '../../src/withlogging.js';
 import select from '../../src/select.js';
 import Person from '../fixtures/person.js';
+import { proceed } from 'contextjs';
 
 describe('.layer operators', function() {
     it('Person layer example', function() {
@@ -115,64 +116,73 @@ describe('.layer operators', function() {
         }
         withLogging.call(GraphicalElement);
 
+        class Stage extends GraphicalElement {
+            onDrag() {
+                return 'stage';
+            }
+        }
+
         class Circle extends GraphicalElement {
             onDrag() {
-                return 'slider behavior';
+                return 'circle';
             }
         }
 
         class Rectangle extends GraphicalElement {
             onDrag() {
-                return 'rectangle behavior';
+                return 'rectangle';
             }
         }
 
         class Text extends GraphicalElement {
             onDrag() {
-                return 'text behavior';
+                return 'text';
             }
         }
 
         let s = select(GraphicalElement, ge => ge.hasParent((parent, child) => parent.persistentChildren.includes(child)));
         s.layer({
-            onDrag() {
-                return 'do nothing';
+            onDrag(event) {
+                return proceed() + ' -> ' + this.parent.onDrag(event);
             }
         });
 
-        let stage = new GraphicalElement();
+        let stage = new Stage();
+        let group = new Rectangle();
         let rect = new Rectangle();
         let text = new Text();
         let circle = new Circle();
 
-        expect(rect.onDrag()).to.equal('rectangle behavior');
-        expect(text.onDrag()).to.equal('text behavior');
-        expect(circle.onDrag()).to.equal('slider behavior');
+        stage.addChild(group);
 
-        stage.addChild(rect);
+        expect(rect.onDrag()).to.equal('rectangle');
+        expect(text.onDrag()).to.equal('text');
+        expect(circle.onDrag()).to.equal('circle');
+
+        group.addChild(rect);
         rect.addChild(text);
 
-        expect(rect.onDrag()).to.equal('rectangle behavior');
-        expect(text.onDrag()).to.equal('text behavior');
-        expect(circle.onDrag()).to.equal('slider behavior');
+        expect(rect.onDrag()).to.equal('rectangle');
+        expect(text.onDrag()).to.equal('text');
+        expect(circle.onDrag()).to.equal('circle');
 
-        stage.persistChildren();
-        stage.addChild(circle);
+        group.persistChildren();
+        group.addChild(circle);
 
-        expect(rect.onDrag()).to.equal('do nothing');
-        expect(text.onDrag()).to.equal('do nothing');
-        expect(circle.onDrag()).to.equal('slider behavior');
+        expect(rect.onDrag()).to.equal('rectangle -> rectangle');
+        expect(text.onDrag()).to.equal('text -> rectangle -> rectangle');
+        expect(circle.onDrag()).to.equal('circle');
 
-        stage.unpersistChildren();
+        group.unpersistChildren();
 
-        expect(rect.onDrag()).to.equal('rectangle behavior');
-        expect(text.onDrag()).to.equal('text behavior');
-        expect(circle.onDrag()).to.equal('slider behavior');
+        expect(rect.onDrag()).to.equal('rectangle');
+        expect(text.onDrag()).to.equal('text');
+        expect(circle.onDrag()).to.equal('circle');
 
-        stage.persistChildren();
+        group.persistChildren();
 
-        expect(rect.onDrag()).to.equal('do nothing');
-        expect(text.onDrag()).to.equal('do nothing');
-        expect(circle.onDrag()).to.equal('do nothing');
+        expect(rect.onDrag()).to.equal('rectangle -> rectangle');
+        expect(text.onDrag()).to.equal('text -> rectangle -> rectangle');
+        expect(circle.onDrag()).to.equal('circle -> rectangle');
     });
 });
